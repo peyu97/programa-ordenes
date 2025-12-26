@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Órdenes Médicas - MediAyuda</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Layout Principal --- */
+        .app-container {
+            display: flex;
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* --- Barra Lateral (Datos Paciente) --- */
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .sidebar h2 {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+        }
+
+        button.btn-clear {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        button.btn-clear:hover { opacity: 0.9; }
+
+        /* --- Área Principal --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #e0e0e0;
+            position: relative;
+        }
+
+        /* --- Barra de Herramientas Superior --- */
+        .toolbar {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .toolbar select {
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .tool-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 5px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover { background: rgba(255,255,255,0.3); }
+        .tool-btn.active { background: var(--accent-color); border-color: var(--accent-color); }
+        
+        .print-btn { background-color: #27ae60; font-weight: bold; margin-left: auto;}
+
+        /* --- Lienzo del Documento --- */
+        .document-area {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            cursor: crosshair; /* Default cursor */
+        }
+
+        #document-wrapper {
+            position: relative;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            /* Tamaño inicial referencial, se ajustará con JS */
+            width: 800px; 
+            height: 1000px;
+        }
+
+        #document-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none; /* Click through to wrapper */
+            user-select: none;
+        }
+
+        /* --- Elementos Agregados (Texto y X) --- */
+        .added-element {
+            position: absolute;
+            font-family: 'Courier New', Courier, monospace; /* Estilo máquina de escribir */
+            font-weight: bold;
+            color: #000;
+            cursor: grab;
+            user-select: none;
+            white-space: nowrap;
+            padding: 2px;
+            font-size: 16px; /* Ajustable */
+            z-index: 5;
+        }
+
+        .added-element:hover {
+            outline: 1px dashed #3498db;
+        }
+
+        .is-dragging {
+            cursor: grabbing !important;
+            opacity: 0.7;
+        }
+
+        /* Datos autollenados (son fijos en coordenadas pero editables en sidebar) */
+        .auto-field {
+            position: absolute;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            color: #000;
+            pointer-events: none; /* No se mueven con mouse, solo por config */
+            background: rgba(255, 255, 0, 0.1); /* Ligero resalte en pantalla para verlos */
+        }
+
+        /* --- Footer y Debug --- */
+        footer {
+            background: #222;
+            color: #888;
+            text-align: center;
+            padding: 5px;
+            font-size: 0.8rem;
+        }
+
+        .debug-panel {
+            position: fixed;
+            bottom: 40px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            display: none; /* Oculto por defecto */
+            z-index: 100;
+            border: 1px solid #0f0;
+        }
+
+        /* --- ESTILOS DE IMPRESIÓN --- */
+@media print {
+            /* 1. Configuración de la página física */
+            @page {
+                size: auto;   /* Deja que el navegador detecte el tamaño */
+                margin: 0mm;  /* ¡IMPORTANTE! Elimina márgenes de fecha/hora/url */
+            }
+
+            /* 2. Ocultar todo lo que no es el documento */
+            body { 
+                background: white; 
+                margin: 0; 
+                padding: 0;
+                /* Opcional: Si se corta a la derecha, reduce esta escala a 0.95 */
+                transform: scale(1.0); 
+                transform-origin: top left;
+            }
+
+            .sidebar, .toolbar, footer, .debug-panel, ::-webkit-scrollbar {
+                display: none !important;
+            }
+
+            .app-container { 
+                display: block; 
+                height: auto; 
+                overflow: visible;
+            }
+
+            .main-content { 
+                display: block; 
+                margin: 0; 
+                padding: 0; 
+                background: white;
+            }
+
+            .document-area { 
+                display: block; 
+                padding: 0; 
+                margin: 0; 
+                overflow: visible; 
+            }
+
+            /* 3. EL TRUCO: Forzar el mismo tamaño que en pantalla */
+            #document-wrapper {
+                position: absolute;
+                top: 0;
+                left: 0;
+                /* MANTENER EL MISMO ANCHO QUE EN PANTALLA (800px) 
+                   Esto evita que el texto se mueva respecto a la imagen */
+                width: 800px !important; 
+                height: 1000px !important; 
+                
+                margin: 0 !important;
+                box-shadow: none;
+                border: none;
+                
+                /* Asegura que los colores e imágenes de fondo se impriman */
+                print-color-adjust: exact; 
+                -webkit-print-color-adjust: exact;
+                
+                /* Evita que se genere una segunda página si algo sobra por 1px */
+                overflow: hidden; 
+            }
+
+            /* Quitar bordes de selección al imprimir */
+            .added-element { border: none !important; outline: none !important; }
+            .added-element:hover { outline: none !important; }
+            .auto-field { background: transparent !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <label>Formulario:</label>
+        <select id="doc-selector">
+            <option value="orden_lab.jpg" selected>Laboratorio</option>
+            <option value="orden_ic.jpg">Interconsulta</option>
+            <option value="orden_proa.jpg">PROA</option>
+            <option value="orden_rm.jpg">Resonancia Mag.</option>
+            <option value="orden_rx_portatil.jpg">RX Portátil</option>
+            <option value="orden_tc.jpg">Scanner (TC)</option>
+            <option value="orden_us.jpg">Ecografía (US)</option>
+        </select>
+
+        <div style="width: 20px; border-left: 1px solid rgba(255,255,255,0.2); height: 20px;"></div>
+
+        <button class="tool-btn active" id="btn-text" onclick="setTool('text')">Texto Libre</button>
+        <button class="tool-btn" id="btn-x" onclick="setTool('x')">☑ Marcar X</button>
+        <button class="tool-btn" id="btn-move" onclick="setTool('move')">✥ Mover</button>
+        <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">⌫ Goma</button>
+<button class="tool-btn" onclick="borrarTodasLasCruces()" style="background: rgba(231, 76, 60, 0.4);">
+            🗑️ Borrar X
+        </button>
+        
+        <button class="tool-btn" id="btn-debug" onclick="toggleDebug()" style="margin-left:auto; font-size: 0.8rem; opacity: 0.7;">Modo Debug</button>
+        <button class="tool-btn print-btn" onclick="window.print()">🖨 IMPRIMIR</button>
+    </div>
+
+    <div class="app-container">
+        <div class="sidebar">
+            <h2>Datos del Paciente</h2>
+            <p style="font-size: 0.8rem; color: #666;">Completa aquí y se llenará en todos los documentos.</p>
+            
+            <div class="form-group">
+                <label>Nombre Paciente</label>
+                <input type="text" id="in-nombre" placeholder="Ej: Juan" oninput="updateAutoFields()">
+            </div>
+            <div class="form-group">
+                <label>Apellidos Paciente</label>
+                <input type="text" id="in-apellidos" placeholder="Ej: Pérez González" oninput="updateAutoFields()">
+            </div>
+
+           <div class="form-group">
+                <label>Edad</label>
+                <input type="text" id="in-edad" placeholder="Ej: 35 años" oninput="updateAutoFields()">
+            </div>
+
+            <div class="form-group">
+                <label>RUT Paciente</label>
+                <input type="text" id="in-rutpaciente" placeholder="12.345.678-9" oninput="updateAutoFields()">
+            </div>
+
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="in-fecha" oninput="updateAutoFields()">
+            </div>
+            <div class="form-group">
+                <label>Diagnóstico</label>
+                <textarea id="in-diagnostico" rows="2" placeholder="Ej: Neumonía NAC..." oninput="updateAutoFields()"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Sala / Cama</label>
+                <input type="text" id="in-sala" placeholder="Ej: 304 - B" oninput="updateAutoFields()">
+            </div>
+            <hr>
+            <div class="form-group">
+                <label>Médico (Apellidos, Nombre)</label>
+                <input type="text" id="in-medico" placeholder="Ej: Dr. Errázuriz, Pedro" oninput="updateAutoFields()">
+            </div>
+            <div class="form-group">
+                <label>RUT Médico</label>
+                <input type="text" id="in-rutmedico" placeholder="12.345.678-9" oninput="updateAutoFields()">
+            </div>
+
+            <button class="btn-clear" onclick="clearForm()">LIMPIAR FORMULARIO</button>
+        </div>
+
+        <div class="main-content">
+            <div class="document-area" id="area-trabajo">
+                <div id="document-wrapper">
+                    <img id="document-img" src="" alt="Formulario Médico">
+                    
+                    <div id="auto-nombre" class="auto-field"></div>
+                    <div id="auto-apellidos" class="auto-field"></div>
+		    <div id="auto-edad" class="auto-field"></div>
+                    <div id="auto-rutpaciente" class="auto-field"></div> <div id="auto-fecha" class="auto-field"></div>
+                    <div id="auto-diagnostico" class="auto-field" style="width: 300px; white-space: normal;"></div>
+                    <div id="auto-sala" class="auto-field"></div>
+                    <div id="auto-medico" class="auto-field"></div>
+                    <div id="auto-rutmedico" class="auto-field"></div>
+
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="debug-panel" id="debug-box">
+        <p>⚠️ MODO DEBUG: SOLO PARA PEYU</p>
+        <p>No tocar si no eres Peyu.</p>
+        <p>X: <span id="db-x">0</span> | Y: <span id="db-y">0</span></p>
+    </div>
+
+    <footer>
+        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0 | Diciembre 2025
+    </footer>
+
+    <script>
+        // --- 1. CONFIGURACIÓN DE COORDENADAS --- 
+        // ¡OJO DOC! Agregué "rutpaciente" a la configuración. 
+        // Tendrás que calibrar su posición en cada orden.
+        
+        const docConfig = {
+            "orden_lab.jpg": { // LABORATORIO (Ahora es el primero)
+                nombre: { top: 140, left: 150 },
+                apellidos: { top: 140, left: 400 },
+                edad:          null,
+                rutpaciente: { top: 160, left: 145 }, 
+                fecha: { top: 50, left: 480 },
+                diagnostico: { top: 185, left: 150 },
+                sala: { top: 70, left: 480 },
+                medico: { top: 950, left: 80 },
+                rutmedico: { top: 950, left: 390 }
+            },
+            "orden_ic.jpg": {
+                nombre: { top: 260, left: 597 },
+                apellidos: { top: 260, left: 149 },
+                edad:         { top: 360, left: 600 }, 
+                rutpaciente: { top: 320, left: 140 }, 
+                fecha: { top: 154, left: 379 },
+                diagnostico: { top: 577, left: 113 },
+                sala: { top: 40, left: 378 },
+                medico: { top: 869, left: 184 },
+                rutmedico: { top: 920, left: 159 }
+            },        
+
+            // PROA
+            "orden_proa.jpg": { 
+                nombre:       { top: 180, left: 230 }, 
+                apellidos:    { top: 180, left: 440 }, 
+                edad:         { top: 200, left: 450 },
+                rutpaciente: { top: 200, left: 230 }, 
+                fecha:        { top: 110, left: 625 }, 
+                diagnostico:  { top: 310, left: 260 }, 
+                sala:         { top: 225, left: 230 },
+                medico:       { top: 800, left: 470 }, 
+                rutmedico:   { top: 820, left: 470 } 
+            },
+
+            // RESONANCIA MAGNÉTICA
+            "orden_rm.jpg": { 
+                nombre:       { top: 100, left: 200 }, 
+                apellidos:    { top: 100, left: 400 }, 
+                edad:         { top: 120, left: 320 },
+                rutpaciente: { top: 120, left: 460 }, 
+                fecha:        { top: 145, left: 170 }, 
+                diagnostico:  { top: 200, left: 90 }, 
+                sala:         { top: 145, left: 600 },
+                medico:       { top: 890, left: 275 }, 
+                rutmedico:   null 
+            },
+
+            // RX PORTÁTIL
+            "orden_rx_portatil.jpg": { 
+                nombre:       { top: 165, left: 200 }, 
+                apellidos:    { top: 165, left: 400 }, 
+                edad:         { top: 185, left: 325 },
+                rutpaciente: { top: 185, left: 480 }, 
+                fecha:        { top: 205, left: 170 }, 
+                diagnostico:  { top: 250, left: 80 }, 
+                sala:         { top: 200, left: 630 },
+                medico:       { top: 570, left: 220 }, 
+                rutmedico:   null 
+            },
+
+            // SCANNER (TC)
+            "orden_tc.jpg": { 
+                nombre:       { top: 90, left: 200 }, 
+                apellidos:    { top: 90, left: 400 }, 
+                edad:         { top: 110, left: 320 }, 
+                rutpaciente: { top: 110, left: 470 }, 
+                fecha:        { top: 130, left: 170 }, 
+                diagnostico:  { top: 180, left: 90 }, 
+                sala:         { top: 130, left: 600 },
+                medico:       { top: 900, left: 275 }, 
+                rutmedico:   null
+            },
+
+            // ECOGRAFÍA (US)
+            "orden_us.jpg": { 
+                nombre:       { top: 100, left: 215 }, 
+                apellidos:    { top: 100, left: 430 }, 
+                edad:         { top: 125, left: 380 }, 
+                rutpaciente: { top: 125, left: 530 }, 
+                fecha:        { top: 170, left: 220 }, 
+                diagnostico:  { top: 215, left: 80 }, 
+                sala:         { top: 150, left: 420 }, 
+                medico:       { top: 855 , left: 220 }, 
+                rutmedico:   null,
+            }
+        };
+
+        // --- 2. ESTADO DE LA APLICACIÓN ---
+        let currentTool = 'text'; 
+        let isDragging = false;
+        let dragElement = null;
+        let offsetX, offsetY;
+        let isDebug = false;
+
+        // Inicialización
+        window.onload = function() {
+            document.getElementById('in-fecha').valueAsDate = new Date();
+            // Aseguramos que cargue lo que dice el selector (que ahora es lab por defecto)
+            changeDoc();
+            updateAutoFields();
+        };
+
+        // --- 3. FUNCIONES DE INTERFAZ ---
+        
+        document.getElementById('doc-selector').addEventListener('change', changeDoc);
+
+        function changeDoc() {
+            const fileName = document.getElementById('doc-selector').value;
+            document.getElementById('document-img').src = fileName;
+            updateAutoFieldsPositions(fileName);
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            if(tool !== 'debug') { 
+                let btnId = tool === 'text' ? 'btn-text' : 
+                            tool === 'x' ? 'btn-x' : 
+                            tool === 'move' ? 'btn-move' : 'btn-erase';
+                document.getElementById(btnId).classList.add('active');
+            }
+
+            const wrapper = document.getElementById('document-wrapper');
+            if (tool === 'text') wrapper.style.cursor = 'text';
+            else if (tool === 'x') wrapper.style.cursor = 'crosshair';
+            else if (tool === 'move') wrapper.style.cursor = 'default';
+            else if (tool === 'erase') wrapper.style.cursor = 'not-allowed'; 
+        }
+
+        function toggleDebug() {
+            isDebug = !isDebug;
+            const panel = document.getElementById('debug-box');
+            panel.style.display = isDebug ? 'block' : 'none';
+            const btn = document.getElementById('btn-debug');
+            btn.style.color = isDebug ? '#0f0' : 'white';
+        }
+
+        // --- 4. LÓGICA DEL CANVAS/DOCUMENTO ---
+
+        const wrapper = document.getElementById('document-wrapper');
+
+        wrapper.addEventListener('click', function(e) {
+            if (e.target.classList.contains('added-element')) return; 
+            if (currentTool === 'move' || currentTool === 'erase') return;
+
+            const rect = wrapper.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (currentTool === 'text') {
+                const text = prompt("Ingresa el texto a añadir:");
+                if (text) createElement(x, y, text, 'text');
+            } else if (currentTool === 'x') {
+                createElement(x - 6, y - 8, "X", 'x'); 
+            }
+        });
+
+        wrapper.addEventListener('mousemove', function(e) {
+            if (isDebug) {
+                const rect = wrapper.getBoundingClientRect();
+                const x = Math.round(e.clientX - rect.left);
+                const y = Math.round(e.clientY - rect.top);
+                document.getElementById('db-x').innerText = x;
+                document.getElementById('db-y').innerText = y;
+            }
+        });
+
+        function createElement(x, y, content, type) {
+            const el = document.createElement('div');
+            el.classList.add('added-element');
+            el.innerText = content;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            
+            if (type === 'x') {
+                el.classList.add('tipo-cruz'); // Agregamos una "etiqueta" para poder borrarlas luego
+                el.style.fontSize = '15px';    // Reducido de 20px a 14px (aprox 30% menos)
+                el.style.color = 'blue';
+                el.style.fontWeight = 'bold';
+            }
+
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('click', function(e) {
+                e.stopPropagation(); 
+                if (currentTool === 'erase') {
+                    el.remove();
+                }
+            });
+
+            wrapper.appendChild(el);
+        }
+
+        // --- 5. LÓGICA DE MOVER (DRAG AND DROP) ---
+
+        function startDrag(e) {
+            if (currentTool !== 'move') return;
+            isDragging = true;
+            dragElement = e.target;
+            
+            const rect = dragElement.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
+            dragElement.classList.add('is-dragging');
+        }
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging || !dragElement) return;
+            e.preventDefault();
+
+            const wrapperRect = wrapper.getBoundingClientRect();
+            let newX = e.clientX - wrapperRect.left - offsetX;
+            let newY = e.clientY - wrapperRect.top - offsetY;
+
+            dragElement.style.left = newX + 'px';
+            dragElement.style.top = newY + 'px';
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isDragging && dragElement) {
+                dragElement.classList.remove('is-dragging');
+                isDragging = false;
+                dragElement = null;
+            }
+        });
+
+        // --- 6. AUTOLLENADO Y FORMULARIO ---
+
+        function updateAutoFields() {
+            document.getElementById('auto-nombre').innerText = document.getElementById('in-nombre').value;
+            document.getElementById('auto-apellidos').innerText = document.getElementById('in-apellidos').value;
+            document.getElementById('auto-edad').innerText = document.getElementById('in-edad').value;
+            document.getElementById('auto-rutpaciente').innerText = document.getElementById('in-rutpaciente').value;
+            
+// --- CÓDIGO NUEVO (Pega esto encima) ---
+let fechaRaw = document.getElementById('in-fecha').value;
+if (fechaRaw) {
+    // La fecha viene como "2025-12-24" (Año-Mes-Día)
+    let partes = fechaRaw.split('-'); 
+    // partes[0] es Año, partes[1] es Mes, partes[2] es Día
+    
+    // Lo reordenamos a Día-Mes-Año
+    document.getElementById('auto-fecha').innerText = `${partes[2]}-${partes[1]}-${partes[0]}`;
+} else {
+    document.getElementById('auto-fecha').innerText = "";
+}
+
+            document.getElementById('auto-diagnostico').innerText = document.getElementById('in-diagnostico').value;
+            document.getElementById('auto-sala').innerText = document.getElementById('in-sala').value;
+            document.getElementById('auto-medico').innerText = document.getElementById('in-medico').value;
+            document.getElementById('auto-rutmedico').innerText = document.getElementById('in-rutmedico').value;
+        }
+
+        function updateAutoFieldsPositions(fileName) {
+            const config = docConfig[fileName];
+            // Ahora incluimos rutpaciente y diferenciamos rutmedico
+            const fields = ['nombre', 'apellidos', 'edad', 'rutpaciente',  'fecha', 'diagnostico', 'sala', 'medico', 'rutmedico'];
+
+            if (!config) {
+                fields.forEach(f => {
+                    const el = document.getElementById('auto-' + f);
+                    if(el) el.style.display = 'none';
+                });
+                return;
+            }
+
+            fields.forEach(field => {
+                const el = document.getElementById('auto-' + field);
+                const coords = config[field];
+
+                if (coords && el) {
+                    el.style.display = 'block';
+                    el.style.top = coords.top + 'px';
+                    el.style.left = coords.left + 'px';
+                } else if (el) {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        function clearForm() {
+            if(confirm("¿Estás seguro de limpiar los datos del paciente?")) {
+                document.getElementById('in-nombre').value = "";
+                document.getElementById('in-apellidos').value = "";
+                document.getElementById('in-rutpaciente').value = ""; 
+                document.getElementById('in-diagnostico').value = "";
+                document.getElementById('in-sala').value = "";
+                
+                updateAutoFields();
+                
+                const added = document.querySelectorAll('.added-element');
+                added.forEach(el => el.remove());
+            }
+        }
+
+function borrarTodasLasCruces() {
+            // Buscamos solo los elementos con la clase que definimos arriba
+            const cruces = document.querySelectorAll('.tipo-cruz');
+
+            if (cruces.length === 0) {
+                alert("No hay cruces para borrar.");
+                return;
+            }
+
+            if (confirm("¿Estás seguro de borrar TODAS las cruces (X)?")) {
+                cruces.forEach(cruz => {
+                    cruz.remove();
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>
