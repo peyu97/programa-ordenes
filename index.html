@@ -211,6 +211,25 @@
             border: 1px solid #0f0;
         }
 
+/* --- Estilos para la Caja de Texto Editable --- */
+        .tipo-texto {
+            min-width: 150px;
+            min-height: 25px;
+            resize: both; /* Permite cambiar el tamaño de la caja */
+            overflow: hidden;
+            white-space: pre-wrap; /* Permite que el texto salte a la siguiente línea */
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px dashed #3498db;
+            user-select: text; /* Vital para poder seleccionar y editar el texto */
+            cursor: text;
+        }
+
+        .tipo-texto:focus {
+            outline: 2px solid #3498db;
+            background: white;
+            border-style: solid;
+        }
+		
         /* --- ESTILOS DE IMPRESIÓN --- */
 @media print {
             /* 1. Configuración de la página física */
@@ -280,6 +299,14 @@
             .added-element:hover { outline: none !important; }
             .auto-field { background: transparent !important; }
         }
+
+		/* Ocultar bordes de las cajas de texto al imprimir */
+            .tipo-texto {
+                border: none !important;
+                background: transparent !important;
+                resize: none !important;
+                outline: none !important;
+            }
     </style>
 </head>
 <body>
@@ -385,7 +412,7 @@
     </div>
 
     <footer>
-        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0.1 | Diciembre 2025
+        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0.2 | Diciembre 2025 - Febrero 2026
     </footer>
 
     <script>
@@ -538,7 +565,7 @@
 
         const wrapper = document.getElementById('document-wrapper');
 
-        wrapper.addEventListener('click', function(e) {
+wrapper.addEventListener('click', function(e) {
             if (e.target.classList.contains('added-element')) return; 
             if (currentTool === 'move' || currentTool === 'erase') return;
 
@@ -547,8 +574,8 @@
             const y = e.clientY - rect.top;
 
             if (currentTool === 'text') {
-                const text = prompt("Ingresa el texto a añadir:");
-                if (text) createElement(x, y, text, 'text');
+                // Creamos la caja vacía directamente sin preguntar
+                createElement(x, y, '', 'text');
             } else if (currentTool === 'x') {
                 createElement(x - 6, y - 8, "X", 'x'); 
             }
@@ -564,7 +591,7 @@
             }
         });
 
-        function createElement(x, y, content, type) {
+function createElement(x, y, content, type) {
             const el = document.createElement('div');
             el.classList.add('added-element');
             el.innerText = content;
@@ -572,10 +599,16 @@
             el.style.top = y + 'px';
             
             if (type === 'x') {
-                el.classList.add('tipo-cruz'); // Agregamos una "etiqueta" para poder borrarlas luego
-                el.style.fontSize = '15px';    // Reducido de 20px a 14px (aprox 30% menos)
+                el.classList.add('tipo-cruz');
+                el.style.fontSize = '15px'; 
                 el.style.color = 'blue';
                 el.style.fontWeight = 'bold';
+            } else if (type === 'text') {
+                el.classList.add('tipo-texto');
+                el.contentEditable = "true"; // Convierte el div en una caja de texto
+                
+                // Enfocamos la caja automáticamente para que puedas empezar a escribir al instante
+                setTimeout(() => el.focus(), 10);
             }
 
             el.addEventListener('mousedown', startDrag);
@@ -712,5 +745,6 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
+
 
 
