@@ -519,14 +519,21 @@
 
         // Inicialización
 // Inicialización
+// Inicialización
         window.onload = function() {
             document.getElementById('in-fecha').valueAsDate = new Date();
             
             // --- CÓDIGO NUEVO: LEER URL ---
             const urlParams = new URLSearchParams(window.location.search);
             
-            if (urlParams.has('paciente')) {
-                document.getElementById('in-nombre').value = urlParams.get('paciente');
+            if (urlParams.has('nombre')) {
+                document.getElementById('in-nombre').value = urlParams.get('nombre');
+            }
+            if (urlParams.has('apellidos')) {
+                document.getElementById('in-apellidos').value = urlParams.get('apellidos');
+            }
+            if (urlParams.has('edad')) {
+                document.getElementById('in-edad').value = urlParams.get('edad');
             }
             if (urlParams.has('rut_paciente')) {
                 document.getElementById('in-rutpaciente').value = urlParams.get('rut_paciente');
@@ -542,7 +549,6 @@
             }
             // ------------------------------
 
-            // Aseguramos que cargue lo que dice el selector
             changeDoc();
             updateAutoFields();
         };
@@ -767,6 +773,7 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
+
 
 
 
