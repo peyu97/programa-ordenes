@@ -310,11 +310,11 @@
 /* Estilo para la X fantasma (preview) */
 .cursor-preview {
     position: absolute;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 15px;
-    color: rgba(0, 0, 255, 0.5); /* Azul semitransparente */
+    font-family: 'Courier New', Courier, monospace; /* Misma fuente que la X real */
+    font-size: 15px; /* Mismo tamaño */
+    color: rgba(0, 0, 255, 0.5); /* Azul semitransparente para diferenciarlo */
     font-weight: bold;
-    pointer-events: none; /* Importante: para que no interfiera con los clics */
+    pointer-events: none; /* No interfiere con el clic */
     z-index: 1000;
     display: none; /* Oculto por defecto */
 }
@@ -622,29 +622,40 @@ wrapper.addEventListener('click', function(e) {
             }
         });
 
-        wrapper.addEventListener('mousemove', function(e) {
-			const rect = wrapper.getBoundingClientRect();
+wrapper.addEventListener('mousemove', function(e) {
+    const rect = wrapper.getBoundingClientRect();
+    // Coordenadas relativas al documento
     const x = Math.round(e.clientX - rect.left);
     const y = Math.round(e.clientY - rect.top);
 
-    // Lógica del Preview de la X
+    // Lógica del Preview de la X pura
     const preview = document.getElementById('x-preview');
-    if (currentTool === 'x') {
-        preview.style.display = 'block';
-        preview.style.left = (x - 6) + 'px'; // Ajuste centrado igual que en createElement
-        preview.style.top = (y - 8) + 'px';
-    } else {
-        preview.style.display = 'none';
+    if (preview) {
+        if (currentTool === 'x') {
+            preview.style.display = 'block';
+            // Usamos los mismos desfases que en createElement para precisión total
+            preview.style.left = (x - 6) + 'px';
+            preview.style.top = (y - 8) + 'px';
+        } else {
+            preview.style.display = 'none';
+        }
     }
-if (isDebug) {
-        document.getElementById('db-x').innerText = x;
-        document.getElementById('db-y').innerText = y;
+
+    // Lógica de Debug (solo si está activo)
+    if (isDebug) {
+        const dbX = document.getElementById('db-x');
+        const dbY = document.getElementById('db-y');
+        if (dbX && dbY) {
+            dbX.innerText = x;
+            dbY.innerText = y;
+        }
     }
 });
 
-// También ocultar cuando el mouse sale del documento
+// Asegurar que el preview se oculte si el mouse sale del área de trabajo
 wrapper.addEventListener('mouseleave', () => {
-    document.getElementById('x-preview').style.display = 'none';
+    const preview = document.getElementById('x-preview');
+    if (preview) preview.style.display = 'none';
 });
 
 function createElement(x, y, content, type) {
@@ -801,6 +812,7 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
+
 
 
 
