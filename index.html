@@ -155,7 +155,7 @@
         }
 
         /* --- Elementos Agregados (Texto y X) --- */
-        .added-element {
+        .added-element, .cursor-preview {
             position: absolute;
             font-family: 'Courier New', Courier, monospace; /* Estilo máquina de escribir */
             font-weight: bold;
@@ -163,11 +163,18 @@
             cursor: grab;
             user-select: none;
             white-space: nowrap;
-            padding: 2px;
             font-size: 16px; /* Ajustable */
             z-index: 5;
+			line-height: 1;      /* Elimina el espacio extra arriba/abajo del texto */
+            padding: 0;          /* Quita cualquier margen interno */
+            pointer-events: auto; /* Para que se puedan borrar/mover */
+            height: 15px;        /* Altura fija igual al tamaño de fuente */
+            width: 15px;         /* Ancho fijo para que sea un cuadrado perfecto */
+            text-align: center;  /* Centra la X en su pequeño cuadradito */
         }
-
+.cursor-preview {
+    pointer-events: none !important; 
+}
         .added-element:hover {
             outline: 1px dashed #3498db;
         }
@@ -670,6 +677,12 @@ function createElement(x, y, content, type) {
                 el.style.fontSize = '15px'; 
                 el.style.color = 'blue';
                 el.style.fontWeight = 'bold';
+				el.style.width = '16px';    // Cuadrado mínimo
+ 			    el.style.height = '16px';
+   			    el.style.lineHeight = '16px';
+    			el.style.display = 'flex';
+   			    el.style.alignItems = 'center';
+    			el.style.justifyContent = 'center';
             } else if (type === 'text') {
                 el.classList.add('tipo-texto');
                 el.contentEditable = "true"; // Convierte el div en una caja de texto
@@ -812,6 +825,7 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
+
 
 
 
