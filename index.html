@@ -307,6 +307,18 @@
                 resize: none !important;
                 outline: none !important;
             }
+/* Estilo para la X fantasma (preview) */
+.cursor-preview {
+    position: absolute;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 15px;
+    color: rgba(0, 0, 255, 0.5); /* Azul semitransparente */
+    font-weight: bold;
+    pointer-events: none; /* Importante: para que no interfiera con los clics */
+    z-index: 1000;
+    display: none; /* Oculto por defecto */
+}
+		
     </style>
 </head>
 <body>
@@ -390,7 +402,7 @@
             <div class="document-area" id="area-trabajo">
                 <div id="document-wrapper">
                     <img id="document-img" src="" alt="Formulario Médico">
-                    
+                    <div id="x-preview" class="cursor-preview">X</div>
                     <div id="auto-nombre" class="auto-field"></div>
                     <div id="auto-apellidos" class="auto-field"></div>
 		    <div id="auto-edad" class="auto-field"></div>
@@ -412,7 +424,7 @@
     </div>
 
     <footer>
-        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0.2.1 | Diciembre 2025 - Febrero 2026
+        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0.2.2 | Diciembre 2025 - Marzo 2026
     </footer>
 
     <script>
@@ -565,7 +577,8 @@
 
         function setTool(tool) {
             currentTool = tool;
-            
+            const preview = document.getElementById('x-preview');
+			if (preview) preview.style.display = 'none';
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
             if(tool !== 'debug') { 
                 let btnId = tool === 'text' ? 'btn-text' : 
@@ -610,14 +623,29 @@ wrapper.addEventListener('click', function(e) {
         });
 
         wrapper.addEventListener('mousemove', function(e) {
-            if (isDebug) {
-                const rect = wrapper.getBoundingClientRect();
-                const x = Math.round(e.clientX - rect.left);
-                const y = Math.round(e.clientY - rect.top);
-                document.getElementById('db-x').innerText = x;
-                document.getElementById('db-y').innerText = y;
-            }
-        });
+			const rect = wrapper.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+
+    // Lógica del Preview de la X
+    const preview = document.getElementById('x-preview');
+    if (currentTool === 'x') {
+        preview.style.display = 'block';
+        preview.style.left = (x - 6) + 'px'; // Ajuste centrado igual que en createElement
+        preview.style.top = (y - 8) + 'px';
+    } else {
+        preview.style.display = 'none';
+    }
+if (isDebug) {
+        document.getElementById('db-x').innerText = x;
+        document.getElementById('db-y').innerText = y;
+    }
+});
+
+// También ocultar cuando el mouse sale del documento
+wrapper.addEventListener('mouseleave', () => {
+    document.getElementById('x-preview').style.display = 'none';
+});
 
 function createElement(x, y, content, type) {
             const el = document.createElement('div');
@@ -773,6 +801,7 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
+
 
 
 
