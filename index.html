@@ -222,19 +222,23 @@
 .tipo-texto {
     min-width: 100px;
     min-height: 30px;
-    width: auto;
+    width: 250px;           /* Dale un ancho inicial para que no empiece como un punto */
     height: auto;
-    resize: both;          /* Esto habilita el estiramiento en la mayoría de navegadores */
-    overflow: visible;     /* ¡IMPORTANTE! Cambiado de hidden/auto a visible */
-    white-space: pre-wrap; 
-    word-wrap: break-word;
+    resize: both;
+    overflow: hidden;       /* Para el resize manual, 'hidden' funciona mejor que 'visible' */
+    
+    /* --- ALINEACIÓN --- */
+    text-align: left;       /* Justifica a la izquierda */
+    white-space: pre-wrap;  /* Salto de línea automático cuando llega al borde */
+    word-wrap: break-word;  /* Rompe palabras largas si es necesario */
+    
     background: rgba(255, 255, 255, 0.6);
     border: 1px dashed #3498db;
     padding: 5px;
     user-select: text !important;
     cursor: text;
     line-height: 1.2;
-    display: inline-block; /* Permite que el tamaño se ajuste al contenido inicial */
+    display: block;         /* Cambiado de inline-block a block para controlar el ancho */
 }
 
 /* Forzar que el manejador de tamaño sea visible */
@@ -248,36 +252,6 @@
     outline: 2px solid var(--accent-color);
     background: white;
     border-style: solid;
-}
-
-		/* --- Estilos para la Caja de Texto Editable --- */
-.tipo-texto {
-    min-width: 150px;
-    min-height: 25px;
-    width: 200px; /* Tamaño inicial para que no sea un punto */
-    position: absolute;
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px dashed #3498db;
-    padding: 5px;
-    box-sizing: border-box;
-    white-space: pre-wrap; /* ¡ESTO evita que el texto se salga hacia el lado! */
-    word-wrap: break-word;
-    overflow: hidden;
-    cursor: text;
-    user-select: text;
-    z-index: 10;
-}
-
-/* El "cosito" para redimensionar */
-.resizer {
-    width: 12px;
-    height: 12px;
-    background: #3498db;
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    cursor: nwse-resize; /* Cursor de flecha diagonal */
-    z-index: 11;
 }
 
 @media print {
@@ -734,39 +708,20 @@ function createElement(x, y, content, type) {
         el.classList.add('tipo-texto');
         el.contentEditable = "true";
         el.innerText = content;
-
-        // Añadimos el "cosito" (manejador)
-        const resizer = document.createElement('div');
-        resizer.classList.add('resizer');
-        el.appendChild(resizer);
-
-        // Lógica para redimensionar
-        resizer.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            let startWidth = el.offsetWidth;
-            let startHeight = el.offsetHeight;
-            let startX = e.clientX;
-            let startY = e.clientY;
-
-            function doResize(e) {
-                el.style.width = (startWidth + e.clientX - startX) + 'px';
-                el.style.height = (startHeight + e.clientY - startY) + 'px';
-            }
-
-            function stopResize() {
-                window.removeEventListener('mousemove', doResize);
-                window.removeEventListener('mouseup', stopResize);
-            }
-
-            window.addEventListener('mousemove', doResize);
-            window.addEventListener('mouseup', stopResize);
-        });
-
-        // Evitar que el drag de la app interfiera al escribir
+        
+        // --- LÓGICA PARA EL "COSITO" DE REDIMENSIONAR ---
         el.addEventListener('mousedown', (e) => {
-            if (currentTool === 'text') e.stopPropagation();
+            const rect = el.getBoundingClientRect();
+            // Detectamos si el clic fue en la esquina inferior derecha (el resizer)
+            const isResizer = (e.clientX > rect.right - 20 && e.clientY > rect.bottom - 20);
+            
+            if (isResizer) {
+                // Si toca el cosito, dejamos que el navegador haga su magia
+                e.stopPropagation();
+            } else if (currentTool === 'text') {
+                // Si hace clic para escribir, no movemos la caja
+                e.stopPropagation();
+            }
         });
 
         setTimeout(() => el.focus(), 10);
@@ -774,8 +729,8 @@ function createElement(x, y, content, type) {
 
     el.addEventListener('mousedown', startDrag);
     el.addEventListener('click', function(e) {
+        e.stopPropagation(); 
         if (currentTool === 'erase') {
-            e.stopPropagation();
             el.remove();
         }
     });
