@@ -557,6 +557,19 @@
         let offsetX, offsetY;
         let isDebug = false;
 
+const savedElements = {
+    "orden_lab.jpg": [],
+    "orden_ic.jpg": [],
+    "orden_proa.jpg": [],
+    "orden_rm.jpg": [],
+    "orden_rx_portatil.jpg": [],
+    "orden_tc.jpg": [],
+    "orden_us.jpg": []
+};
+
+// Variable para saber cuál era el documento anterior antes de cambiar
+let lastDoc = "orden_lab.jpg";
+		
         // Inicialización
 // Inicialización
 // Inicialización
@@ -597,11 +610,55 @@
         
         document.getElementById('doc-selector').addEventListener('change', changeDoc);
 
-        function changeDoc() {
-            const fileName = document.getElementById('doc-selector').value;
-            document.getElementById('document-img').src = fileName;
-            updateAutoFieldsPositions(fileName);
-        }
+function changeDoc() {
+    const selector = document.getElementById('doc-selector');
+    const newDoc = selector.value;
+
+    // A. GUARDAR elementos del documento actual antes de salir
+    const currentElements = document.querySelectorAll('.added-element');
+    savedElements[lastDoc] = Array.from(currentElements).map(el => ({
+        html: el.innerHTML,
+        classList: Array.from(el.classList),
+        top: el.style.top,
+        left: el.style.left,
+        width: el.style.width,
+        height: el.style.height,
+        contentEditable: el.contentEditable
+    }));
+
+    // B. LIMPIAR el wrapper de los elementos visuales (pero no los auto-fields)
+    currentElements.forEach(el => el.remove());
+
+    // C. CAMBIAR IMAGEN Y POSICIONES
+    document.getElementById('document-img').src = newDoc;
+    updateAutoFieldsPositions(newDoc);
+
+    // D. RESTAURAR elementos del nuevo documento (si existen)
+    if (savedElements[newDoc]) {
+        savedElements[newDoc].forEach(data => {
+            const el = document.createElement('div');
+            data.classList.forEach(cls => el.classList.add(cls));
+            el.style.top = data.top;
+            el.style.left = data.left;
+            el.style.width = data.width;
+            el.style.height = data.height;
+            el.innerHTML = data.html;
+            el.contentEditable = data.contentEditable;
+
+            // Re-vincular eventos
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('click', function(e) {
+                e.stopPropagation(); 
+                if (currentTool === 'erase') el.remove();
+            });
+
+            wrapper.appendChild(el);
+        });
+    }
+
+    // Actualizar referencia
+    lastDoc = newDoc;
+}
 
         function setTool(tool) {
             currentTool = tool;
@@ -834,10 +891,15 @@ if (fechaRaw) {
                 document.getElementById('in-diagnostico').value = "";
                 document.getElementById('in-sala').value = "";
                 
-                updateAutoFields();
                 
-                const added = document.querySelectorAll('.added-element');
-                added.forEach(el => el.remove());
+// Limpiar visualmente
+        const added = document.querySelectorAll('.added-element');
+        added.forEach(el => el.remove());
+
+        // Limpiar memoria del doc actual
+        const currentDoc = document.getElementById('doc-selector').value;
+        savedElements[currentDoc] = [];
+				updateAutoFields();
             }
         }
 
