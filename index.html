@@ -219,29 +219,29 @@
         }
 
 /* --- Estilos para la Caja de Texto Editable --- */
-/* --- Estilos para la Caja de Texto Editable --- */
 .tipo-texto {
     min-width: 100px;
-    max-width: 600px;
-    min-height: 24px;
-    resize: both;          /* Habilita el redimensionado nativo */
-    overflow: auto;        /* Necesario para que funcione el resize */
+    min-height: 30px;
+    width: auto;
+    height: auto;
+    resize: both;          /* Esto habilita el estiramiento en la mayoría de navegadores */
+    overflow: visible;     /* ¡IMPORTANTE! Cambiado de hidden/auto a visible */
     white-space: pre-wrap; 
     word-wrap: break-word;
-    background: rgba(52, 152, 219, 0.05); /* Un tinte azul muy sutil */
+    background: rgba(255, 255, 255, 0.6);
     border: 1px dashed #3498db;
-    padding: 4px 8px;
+    padding: 5px;
     user-select: text !important;
     cursor: text;
     line-height: 1.2;
-    z-index: 10;
+    display: inline-block; /* Permite que el tamaño se ajuste al contenido inicial */
 }
 
-/* Personalización del "cosito" de cambiar tamaño (webkit) */
+/* Forzar que el manejador de tamaño sea visible */
 .tipo-texto::-webkit-resizer {
     background-color: #3498db;
-    border-radius: 50%; /* Lo hace redondito para que sea más fácil de ver */
     border: 2px solid white;
+    border-radius: 2px;
 }
 
 .tipo-texto:focus {
@@ -687,13 +687,11 @@ function createElement(x, y, content, type) {
     if (type === 'x') {
         el.innerText = "X";
         el.classList.add('tipo-cruz');
-        // (Tus estilos de la cruz se mantienen igual...)
         el.style.fontSize = '15px'; 
         el.style.color = 'blue';
         el.style.fontWeight = 'bold';
         el.style.width = '16px';
         el.style.height = '16px';
-        el.style.lineHeight = '16px';
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
@@ -702,18 +700,18 @@ function createElement(x, y, content, type) {
         el.contentEditable = "true";
         el.innerText = content;
         
-        // Bloqueamos el "drag" si hacemos clic en la caja de texto 
-        // para que puedas seleccionar texto o usar el "resizer"
+        // --- LÓGICA PARA EL "COSITO" DE REDIMENSIONAR ---
         el.addEventListener('mousedown', (e) => {
-            if (currentTool === 'text' || currentTool === 'move') {
-                // Si el clic es cerca de la esquina inferior derecha (donde está el resizer)
-                // permitimos que el navegador maneje el redimensionado
-                const rect = el.getBoundingClientRect();
-                const isResizer = (e.clientX > rect.right - 15 && e.clientY > rect.bottom - 15);
-                
-                if (isResizer || currentTool === 'text') {
-                    e.stopPropagation(); 
-                }
+            const rect = el.getBoundingClientRect();
+            // Detectamos si el clic fue en la esquina inferior derecha (el resizer)
+            const isResizer = (e.clientX > rect.right - 20 && e.clientY > rect.bottom - 20);
+            
+            if (isResizer) {
+                // Si toca el cosito, dejamos que el navegador haga su magia
+                e.stopPropagation();
+            } else if (currentTool === 'text') {
+                // Si hace clic para escribir, no movemos la caja
+                e.stopPropagation();
             }
         });
 
