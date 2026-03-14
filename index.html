@@ -219,23 +219,29 @@
         }
 
 /* --- Estilos para la Caja de Texto Editable --- */
-        .tipo-texto {
-            min-width: 150px;
-            min-height: 25px;
-            resize: both; /* Permite cambiar el tamaño de la caja */
-            overflow: hidden;
-            white-space: pre-wrap; /* Permite que el texto salte a la siguiente línea */
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px dashed #3498db;
-            user-select: text; /* Vital para poder seleccionar y editar el texto */
-            cursor: text;
-        }
+.tipo-texto {
+    min-width: 100px;
+    max-width: 600px; /* Evita que se salga del papel */
+    min-height: 20px;
+    resize: both;    /* Permite estirar el cuadro manualmente */
+    overflow: hidden;
+    white-space: pre-wrap; /* Permite saltos de línea con Enter */
+    word-wrap: break-word;
+    background: rgba(255, 255, 255, 0.4); /* Fondo sutil para ubicarlo */
+    border: 1px dashed #3498db;
+    padding: 2px 5px;
+    user-select: text;
+    cursor: text;
+    line-height: 1.2;
+    height: auto !important; /* Permite que crezca según el texto */
+    width: auto !important;
+}
 
-        .tipo-texto:focus {
-            outline: 2px solid #3498db;
-            background: white;
-            border-style: solid;
-        }
+.tipo-texto:focus {
+    outline: 2px solid var(--accent-color);
+    background: white;
+    border-style: solid;
+}
 		
         /* --- ESTILOS DE IMPRESIÓN --- */
 @media print {
@@ -431,7 +437,7 @@
     </div>
 
     <footer>
-        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0.2.2 | Diciembre 2025 - Marzo 2026
+        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.0.2.3 | Diciembre 2025 - Marzo 2026
     </footer>
 
     <script>
@@ -666,41 +672,38 @@ wrapper.addEventListener('mouseleave', () => {
 });
 
 function createElement(x, y, content, type) {
-            const el = document.createElement('div');
-            el.classList.add('added-element');
-            el.innerText = content;
-            el.style.left = x + 'px';
-            el.style.top = y + 'px';
-            
-            if (type === 'x') {
-                el.classList.add('tipo-cruz');
-                el.style.fontSize = '15px'; 
-                el.style.color = 'blue';
-                el.style.fontWeight = 'bold';
-				el.style.width = '16px';    // Cuadrado mínimo
- 			    el.style.height = '16px';
-   			    el.style.lineHeight = '16px';
-    			el.style.display = 'flex';
-   			    el.style.alignItems = 'center';
-    			el.style.justifyContent = 'center';
-            } else if (type === 'text') {
-                el.classList.add('tipo-texto');
-                el.contentEditable = "true"; // Convierte el div en una caja de texto
-                
-                // Enfocamos la caja automáticamente para que puedas empezar a escribir al instante
-                setTimeout(() => el.focus(), 10);
-            }
+    const el = document.createElement('div');
+    el.classList.add('added-element');
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    
+    if (type === 'x') {
+        el.innerText = "X"; // Solo para las cruces
+        el.classList.add('tipo-cruz');
+        // ... (resto de tu estilo para la cruz)
+    } else if (type === 'text') {
+        el.classList.add('tipo-texto');
+        el.contentEditable = "true";
+        el.innerText = content; // Si viene vacío, queda listo para escribir
+        
+        // Evitamos que el drag interfiera con la selección de texto
+        el.addEventListener('mousedown', (e) => {
+            if (currentTool === 'text') e.stopPropagation(); 
+        });
 
-            el.addEventListener('mousedown', startDrag);
-            el.addEventListener('click', function(e) {
-                e.stopPropagation(); 
-                if (currentTool === 'erase') {
-                    el.remove();
-                }
-            });
+        setTimeout(() => el.focus(), 10);
+    }
 
-            wrapper.appendChild(el);
+    el.addEventListener('mousedown', startDrag);
+    el.addEventListener('click', function(e) {
+        e.stopPropagation(); 
+        if (currentTool === 'erase') {
+            el.remove();
         }
+    });
+
+    wrapper.appendChild(el);
+}}
 
         // --- 5. LÓGICA DE MOVER (DRAG AND DROP) ---
 
