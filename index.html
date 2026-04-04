@@ -361,6 +361,9 @@
             <option value="orden_rx_portatil.jpg">RX Portátil</option>
             <option value="orden_tc.jpg">Scanner (TC)</option>
             <option value="orden_us.jpg">Ecografía (US)</option>
+	    <option value="orden_eeg.jpg">Electroencefalograma</option>	
+            <option value="orden_rx.jpg">Radiografías</option>	
+            <option value="orden_cardio.jpg">Ecocardio</option>
         </select>
 
         <div style="width: 20px; border-left: 1px solid rgba(255,255,255,0.2); height: 20px;"></div>
@@ -548,6 +551,45 @@
                 medico:       { top: 855 , left: 220 }, 
                 rutmedico:   null,
             }
+
+            // EEG
+            "orden_eeg.jpg": { 
+                nombre:       { top: 100, left: 215 }, 
+                apellidos:    { top: 100, left: 430 }, 
+                edad:         { top: 125, left: 380 }, 
+                rutpaciente: { top: 125, left: 530 }, 
+                fecha:        { top: 170, left: 220 }, 
+                diagnostico:  { top: 215, left: 80 }, 
+                sala:         { top: 150, left: 420 }, 
+                medico:       { top: 855 , left: 220 }, 
+                rutmedico:   null,
+            }
+
+            // Radiografias
+            "orden_rx.jpg": { 
+                nombre:       { top: 100, left: 215 }, 
+                apellidos:    { top: 100, left: 430 }, 
+                edad:         { top: 125, left: 380 }, 
+                rutpaciente: { top: 125, left: 530 }, 
+                fecha:        { top: 170, left: 220 }, 
+                diagnostico:  { top: 215, left: 80 }, 
+                sala:         { top: 150, left: 420 }, 
+                medico:       { top: 855 , left: 220 }, 
+                rutmedico:   null,
+            }
+
+            // ecocardio
+            "orden_cardio.jpg": { 
+                nombre:       { top: 100, left: 215 }, 
+                apellidos:    { top: 100, left: 430 }, 
+                edad:         { top: 125, left: 380 }, 
+                rutpaciente: { top: 125, left: 530 }, 
+                fecha:        { top: 170, left: 220 }, 
+                diagnostico:  { top: 215, left: 80 }, 
+                sala:         { top: 150, left: 420 }, 
+                medico:       { top: 855 , left: 220 }, 
+                rutmedico:   null,
+            }
         };
 
         // --- 2. ESTADO DE LA APLICACIÓN ---
@@ -565,6 +607,9 @@ const savedElements = {
     "orden_rx_portatil.jpg": [],
     "orden_tc.jpg": [],
     "orden_us.jpg": []
+    "orden_eeg.jpg": []
+    "orden_rx.jpg": []
+    "orden_cardio.jpg": []
 };
 
 // Variable para saber cuál era el documento anterior antes de cambiar
