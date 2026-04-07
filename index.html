@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -364,6 +363,7 @@
 	    <option value="orden_eeg.jpg">Electroencefalograma</option>	
             <option value="orden_rx.jpg">Radiografías</option>	
             <option value="orden_cardio.jpg">Ecocardio</option>
+            <option value="orden_caprini.jpg">Ecocardio</option>
         </select>
 
         <div style="width: 20px; border-left: 1px solid rgba(255,255,255,0.2); height: 20px;"></div>
@@ -589,6 +589,19 @@
                 sala:         { top: 340, left: 563 }, 
                 medico:       { top: 910, left: 457 }, 
                 rutmedico:   null,
+            },
+
+            // caprini
+            "orden_caprini.jpg": { 
+                nombre:       { top: 314, left: 178 }, 
+                apellidos:    { top: 314, left: 417 }, 
+                edad:         { top: 371, left: 443 }, 
+                rutpaciente: { top: 404, left: 249 }, 
+                fecha:        { top: 910, left: 155 }, 
+                diagnostico:  { top: 433, left: 216 }, 
+                sala:         { top: 340, left: 563 }, 
+                medico:       { top: 910, left: 457 }, 
+                rutmedico:   null,
             }
         };
 
@@ -609,7 +622,8 @@ const savedElements = {
     "orden_us.jpg": [],
     "orden_eeg.jpg": [],
     "orden_rx.jpg": [],
-    "orden_cardio.jpg": []
+    "orden_cardio.jpg": [],
+    "orden_caprini.jpg": []
 };
 
 // Variable para saber cuál era el documento anterior antes de cambiar
@@ -967,12 +981,3 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
