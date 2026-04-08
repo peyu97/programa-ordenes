@@ -356,13 +356,14 @@
             <option value="orden_lab.jpg" selected>Laboratorio</option>
             <option value="orden_ic.jpg">Interconsulta</option>
             <option value="orden_proa.jpg">PROA</option>
-            <option value="orden_rm.jpg">Resonancia Mag.</option>
+            <option value="orden_rm.jpg">RM</option>
             <option value="orden_rx_portatil.jpg">RX Portátil</option>
-            <option value="orden_tc.jpg">Scanner (TC)</option>
-            <option value="orden_us.jpg">Ecografía (US)</option>
-	    <option value="orden_eeg.jpg">Electroencefalograma</option>	
+            <option value="orden_tc.jpg">TAC</option>
+            <option value="orden_us.jpg">US</option>
+	    <option value="orden_eeg.jpg">EEG</option>	
             <option value="orden_rx.jpg">Radiografías</option>	
             <option value="orden_cardio.jpg">Ecocardio</option>
+		    <option value="orden_transfusion.jpg">Transfusión</option>
             <option value="orden_caprini.jpg">Caprini</option>
         </select>
 
@@ -455,7 +456,7 @@
     </div>
 
     <footer>
-        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.2.2 | Diciembre 2025 - Abril 2026
+        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.3 | Diciembre 2025 - Abril 2026
     </footer>
 
     <script>
@@ -602,7 +603,20 @@
                 sala:         null, 
                 medico:       { top: 961, left: 490 }, 
                 rutmedico:   null,
+            },
+
+			            "orden_transfusion.jpg": { 
+                nombre:       { top: 83, left: 145 }, 
+                apellidos:    { top: 83, left: 384 }, 
+                edad:         { top: 130, left: 145 }, 
+                rutpaciente: { top: 107, left: 145 }, 
+                fecha:        { top: 147, left: 145 }, 
+                diagnostico:  null, 
+                sala:         null, 
+                medico:       { top: 961, left: 490 }, 
+                rutmedico:   null,
             }
+			
         };
 
         // --- 2. ESTADO DE LA APLICACIÓN ---
@@ -623,7 +637,8 @@ const savedElements = {
     "orden_eeg.jpg": [],
     "orden_rx.jpg": [],
     "orden_cardio.jpg": [],
-    "orden_caprini.jpg": []
+    "orden_caprini.jpg": [],
+    "orden_transfusion.jpg": []
 };
 
 // Variable para saber cuál era el documento anterior antes de cambiar
