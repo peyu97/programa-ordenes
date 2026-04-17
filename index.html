@@ -346,6 +346,179 @@
     display: none; /* Oculto por defecto */
 }
 		
+
+        .btn-qr {
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            font-weight: bold;
+        }
+        .btn-qr:hover { opacity: 0.95; }
+
+        .qr-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .qr-modal.open { display: flex; }
+
+        .qr-modal-content {
+            width: min(920px, 96vw);
+            max-height: 92vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            padding: 20px;
+        }
+
+        .qr-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .qr-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .qr-close {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .qr-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .qr-tab {
+            border: 1px solid #d0d7de;
+            background: #f7f9fb;
+            color: var(--primary-color);
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .qr-tab.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .qr-panel { display: none; }
+        .qr-panel.active { display: block; }
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .qr-card {
+            border: 1px solid #dfe6e9;
+            border-radius: 10px;
+            padding: 15px;
+            background: #fafcfd;
+        }
+
+        .qr-card h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .qr-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .qr-actions button {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-secondary { background: #ecf0f1; color: #2c3e50; }
+        .btn-success { background: #27ae60; color: white; }
+
+        #qr-reader {
+            width: 100%;
+            min-height: 320px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #111;
+        }
+
+        #qr-reader video {
+            border-radius: 8px;
+        }
+
+        #qr-status, #qr-create-status {
+            font-size: 0.88rem;
+            color: #555;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        #qr-output {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            background: white;
+            border-radius: 10px;
+            border: 1px dashed #cfd8dc;
+        }
+
+        #qr-output canvas, #qr-output img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .qr-note {
+            font-size: 0.82rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 820px) {
+            .qr-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            .qr-modal { display: none !important; }
+        }
+
     </style>
 </head>
 <body>
@@ -427,6 +600,7 @@
                 <input type="text" id="in-rutmedico" placeholder="12.345.678-9" oninput="updateAutoFields()">
             </div>
 
+            <button class="btn-qr" onclick="openQrModal()">🔐 QR PACIENTE</button>
             <button class="btn-clear" onclick="clearForm()">LIMPIAR FORMULARIO</button>
         </div>
 
@@ -449,6 +623,66 @@
         </div>
     </div>
 
+
+    <div class="qr-modal" id="qr-modal" aria-hidden="true">
+        <div class="qr-modal-content">
+            <div class="qr-header">
+                <h3>QR Paciente</h3>
+                <button class="qr-close" onclick="closeQrModal()" aria-label="Cerrar">×</button>
+            </div>
+
+            <div class="qr-tabs">
+                <button class="qr-tab active" id="tab-scan" onclick="switchQrTab('scan')">Scanear QR</button>
+                <button class="qr-tab" id="tab-create" onclick="switchQrTab('create')">Crear QR</button>
+            </div>
+
+            <div class="qr-panel active" id="panel-scan">
+                <div class="qr-grid">
+                    <div class="qr-card">
+                        <h4>Escanear con cámara</h4>
+                        <div id="qr-reader"></div>
+                        <div id="qr-status">Listo para iniciar escaneo.</div>
+                        <div class="qr-actions">
+                            <button class="btn-primary" onclick="startQrScanner()">📷 Iniciar cámara</button>
+                            <button class="btn-secondary" onclick="stopQrScanner()">Detener</button>
+                        </div>
+                        <p class="qr-note">Al detectar un QR válido, el programa descifra el contenido y rellena automáticamente nombre, apellidos, RUT, edad y diagnóstico.</p>
+                    </div>
+                    <div class="qr-card">
+                        <h4>Qué datos toma</h4>
+                        <p class="qr-note">Este lector solo acepta QRs generados por este sistema. El contenido viaja cifrado antes de entrar al código QR, para que un lector común no vea los datos en texto plano.</p>
+                        <ul style="margin:10px 0 0 18px; color:#444; font-size:0.92rem; line-height:1.5;">
+                            <li>Nombre</li>
+                            <li>Apellidos</li>
+                            <li>RUT</li>
+                            <li>Edad</li>
+                            <li>Diagnóstico</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qr-panel" id="panel-create">
+                <div class="qr-grid">
+                    <div class="qr-card">
+                        <h4>Generar QR cifrado</h4>
+                        <p class="qr-note">Se crea desde los datos ya escritos en el formulario. Puedes imprimirlo directamente para pegarlo o adjuntarlo a la orden.</p>
+                        <div class="qr-actions">
+                            <button class="btn-primary" onclick="generatePatientQr()">Generar QR</button>
+                            <button class="btn-success" onclick="printQrOnly()">🖨 Imprimir QR</button>
+                        </div>
+                        <div id="qr-create-status">Aún no se ha generado ningún QR.</div>
+                    </div>
+                    <div class="qr-card">
+                        <h4>Vista previa</h4>
+                        <div id="qr-output"><span style="color:#7f8c8d;">Aquí aparecerá el QR</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div class="debug-panel" id="debug-box">
         <p>⚠️ MODO DEBUG: SOLO PARA PEYU</p>
         <p>No tocar si no eres Peyu.</p>
@@ -456,8 +690,12 @@
     </div>
 
     <footer>
-        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 2.3 | Diciembre 2025 - Abril 2026
+        Hecho con ❤️ por Pedro Errázuriz | @mediayuda_ | Versión 3.0 | Diciembre 2025 - Abril 2026
     </footer>
+
+	<!-- PON esta en su lugar -->
+    <script src="https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <script>
         // --- 1. CONFIGURACIÓN DE COORDENADAS --- 
@@ -626,6 +864,12 @@
         let offsetX, offsetY;
         let isDebug = false;
 
+        let qrScanner = null;
+        let qrScannerRunning = false;
+        let qrCanvasDataUrl = '';
+        const QR_SECRET_PASSPHRASE = 'mediayuda-qr-clinico-v1::solo-lectura-interna';
+        const QR_PAYLOAD_VERSION = 1;
+
 const savedElements = {
     "orden_lab.jpg": [],
     "orden_ic.jpg": [],
@@ -644,6 +888,243 @@ const savedElements = {
 // Variable para saber cuál era el documento anterior antes de cambiar
 let lastDoc = "orden_lab.jpg";
 		
+
+        function uint8ToBase64Url(bytes) {
+            let binary = '';
+            bytes.forEach(b => binary += String.fromCharCode(b));
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+        }
+
+        function base64UrlToUint8(str) {
+            const normalized = str.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+            const binary = atob(padded);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes;
+        }
+
+        async function deriveQrKey() {
+            const enc = new TextEncoder();
+            const baseKey = await crypto.subtle.importKey(
+                'raw',
+                enc.encode(QR_SECRET_PASSPHRASE),
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: enc.encode('mediayuda-qr-salt-v1'),
+                    iterations: 10000,
+                    hash: 'SHA-256'
+                },
+                baseKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptQrPayload(data) {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const enc = new TextEncoder();
+            const key = await deriveQrKey();
+            const cipherBuffer = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                enc.encode(JSON.stringify(data))
+            );
+            const cipherBytes = new Uint8Array(cipherBuffer);
+            return `MIA1.${uint8ToBase64Url(iv)}.${uint8ToBase64Url(cipherBytes)}`;
+        }
+
+        async function decryptQrPayload(payload) {
+            if (!payload || typeof payload !== 'string' || !payload.startsWith('MIA1.')) {
+                throw new Error('Formato QR no reconocido.');
+            }
+
+            const parts = payload.split('.');
+            if (parts.length !== 3) throw new Error('QR inválido.');
+
+            const iv = base64UrlToUint8(parts[1]);
+            const cipherBytes = base64UrlToUint8(parts[2]);
+            const key = await deriveQrKey();
+            const plainBuffer = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                cipherBytes
+            );
+            const dec = new TextDecoder();
+            return JSON.parse(dec.decode(plainBuffer));
+        }
+
+        function getPatientQrData() {
+            return {
+                v: QR_PAYLOAD_VERSION,
+                nombre: document.getElementById('in-nombre').value.trim(),
+                apellidos: document.getElementById('in-apellidos').value.trim(),
+                rut: document.getElementById('in-rutpaciente').value.trim(),
+                edad: document.getElementById('in-edad').value.trim(),
+                diagnostico: document.getElementById('in-diagnostico').value.trim(),
+                ts: new Date().toISOString()
+            };
+        }
+
+        function fillFormFromQrData(data) {
+            document.getElementById('in-nombre').value = data.nombre || '';
+            document.getElementById('in-apellidos').value = data.apellidos || '';
+            document.getElementById('in-rutpaciente').value = data.rut || '';
+            document.getElementById('in-edad').value = data.edad || '';
+            document.getElementById('in-diagnostico').value = data.diagnostico || '';
+            updateAutoFields();
+        }
+
+        function openQrModal() {
+            document.getElementById('qr-modal').classList.add('open');
+            document.getElementById('qr-modal').setAttribute('aria-hidden', 'false');
+        }
+
+        async function closeQrModal() {
+            await stopQrScanner();
+            document.getElementById('qr-modal').classList.remove('open');
+            document.getElementById('qr-modal').setAttribute('aria-hidden', 'true');
+        }
+
+        function switchQrTab(tab) {
+            document.getElementById('tab-scan').classList.toggle('active', tab === 'scan');
+            document.getElementById('tab-create').classList.toggle('active', tab === 'create');
+            document.getElementById('panel-scan').classList.toggle('active', tab === 'scan');
+            document.getElementById('panel-create').classList.toggle('active', tab === 'create');
+
+            if (tab !== 'scan') stopQrScanner();
+        }
+
+        async function startQrScanner() {
+            const status = document.getElementById('qr-status');
+
+            if (!window.isSecureContext) {
+                status.textContent = 'La cámara requiere HTTPS o localhost.';
+                return;
+            }
+
+            try {
+                if (!qrScanner) qrScanner = new Html5Qrcode('qr-reader');
+                if (qrScannerRunning) return;
+
+                status.textContent = 'Abriendo cámara...';
+                await qrScanner.start(
+                    { facingMode: 'environment' },
+                    { fps: 10, qrbox: { width: 240, height: 240 } },
+                    async (decodedText) => {
+                        try {
+                            const data = await decryptQrPayload(decodedText);
+                            fillFormFromQrData(data);
+                            status.textContent = 'QR leído correctamente. Datos cargados en el formulario.';
+                            await stopQrScanner();
+                            switchQrTab('create');
+                        } catch (err) {
+                            status.textContent = 'Se detectó un QR, pero no pertenece a este sistema o no pudo descifrarse.';
+                        }
+                    },
+                    () => {}
+                );
+                qrScannerRunning = true;
+                status.textContent = 'Cámara activa. Apunta al QR.';
+            } catch (err) {
+                status.textContent = 'No se pudo iniciar la cámara. Revisa permisos del navegador.';
+                console.error(err);
+            }
+        }
+
+        async function stopQrScanner() {
+            const status = document.getElementById('qr-status');
+            try {
+                if (qrScanner && qrScannerRunning) {
+                    await qrScanner.stop();
+                    await qrScanner.clear();
+                    qrScannerRunning = false;
+                    status.textContent = 'Escáner detenido.';
+                }
+            } catch (err) {
+                console.error(err);
+                qrScannerRunning = false;
+            }
+        }
+
+        async function generatePatientQr() {
+            const status = document.getElementById('qr-create-status');
+            const output = document.getElementById('qr-output');
+            const data = getPatientQrData();
+
+            if (!data.nombre && !data.apellidos && !data.rut && !data.edad && !data.diagnostico) {
+                status.textContent = 'Completa al menos un dato antes de generar el QR.';
+                return;
+            }
+
+            try {
+                status.textContent = 'Cifrando datos y generando QR...';
+                const encryptedPayload = await encryptQrPayload(data);
+                output.innerHTML = '';
+                const canvas = document.createElement('canvas');
+                await QRCode.toCanvas(canvas, encryptedPayload, {
+                    width: 280,
+                    margin: 1,
+                    errorCorrectionLevel: 'L'
+                });
+                output.appendChild(canvas);
+                qrCanvasDataUrl = canvas.toDataURL('image/png');
+                status.textContent = 'QR cifrado generado correctamente.';
+            } catch (err) {
+                console.error(err);
+                status.textContent = 'No se pudo generar el QR.';
+            }
+        }
+
+        function printQrOnly() {
+            const status = document.getElementById('qr-create-status');
+            if (!qrCanvasDataUrl) {
+                status.textContent = 'Primero genera el QR.';
+                return;
+            }
+
+            const win = window.open('', '_blank', 'width=500,height=650');
+            if (!win) {
+                status.textContent = 'El navegador bloqueó la ventana de impresión.';
+                return;
+            }
+
+            win.document.write(`
+                <html lang="es">
+                <head>
+                    <title>QR Paciente</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 0; padding: 24px; text-align: center; }
+                        h1 { font-size: 20px; margin-bottom: 18px; }
+                        img { width: 320px; height: 320px; object-fit: contain; }
+                        .meta { margin-top: 14px; font-size: 14px; color: #333; }
+                    </style>
+                </head>
+                <body>
+                    <h1>QR Paciente</h1>
+                    <img src="${qrCanvasDataUrl}" alt="QR Paciente">
+                    <div class="meta">Solo de soporte - no válido como documento legal</div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+            win.focus();
+            setTimeout(() => {
+                win.print();
+            }, 300);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeQrModal();
+        });
+
         // Inicialización
 // Inicialización
 // Inicialización
