@@ -131,12 +131,16 @@
             flex: 1;
             overflow: auto;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 24px;
             padding: 20px;
             cursor: crosshair; /* Default cursor */
         }
 
-        #document-wrapper {
+        #document-wrapper,
+        .document-page {
             position: relative;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
@@ -145,7 +149,8 @@
             height: 1000px;
         }
 
-        #document-img {
+        #document-img,
+        .document-page-img {
             width: 100%;
             height: 100%;
             object-fit: contain;
@@ -551,7 +556,7 @@
         </button>
         
         <button class="tool-btn" id="btn-debug" onclick="toggleDebug()" style="margin-left:auto; font-size: 0.8rem; opacity: 0.7;">Modo Debug</button>
-        <button class="tool-btn print-btn" onclick="window.print()">🖨 IMPRIMIR</button>
+        <button class="tool-btn print-btn" onclick="printCurrentDocument()">🖨 IMPRIMIR</button>
     </div>
 
     <div class="app-container">
@@ -606,7 +611,7 @@
 
         <div class="main-content">
             <div class="document-area" id="area-trabajo">
-                <div id="document-wrapper">
+                <div id="document-wrapper" class="document-page" data-page-key="orden_lab.jpg">
                     <img id="document-img" src="" alt="Formulario Médico">
                     <div id="x-preview" class="cursor-preview">X</div>
                     <div id="auto-nombre" class="auto-field"></div>
@@ -857,6 +862,45 @@
 			
         };
 
+        // Paginas extra que se imprimen automaticamente al elegir Resonancia Magnetica.
+        // Para ajustar donde caen los datos en cada encuesta, cambia los null por:
+        // { top: 100, left: 100 }
+        // Las coordenadas se miden contra una pagina de 800 x 1035 px.
+        const rmBiosecurityPages = [
+            {
+                image: "encuestabio.jpg",
+                width: 800,
+                height: 1035,
+                fields: {
+                    nombre: { top: 180, left: 185 },
+                    apellidos: { top: 180, left: 280 },
+                    edad: { top: 226, left: 370  },
+                    rutpaciente: { top: 185, left: 486},
+                    fecha: { top: 126, left:636  },
+                    diagnostico:  { top: 384, left: 170 },
+                    sala: { top: 311, left: 476 },
+                    medico: null,
+                    rutmedico: null     // placeholder: 
+                }
+            },
+            {
+                image: "encuestabio2.jpg",
+                width: 800,
+                height: 1035,
+                fields: {
+                    nombre: null,       // placeholder: { top: 100, left: 100 }
+                    apellidos: null,    // placeholder: { top: 100, left: 260 }
+                    edad: null,         // placeholder: { top: 130, left: 100 }
+                    rutpaciente: null,  // placeholder: { top: 130, left: 260 }
+                    fecha: null,        // placeholder: { top: 160, left: 100 }
+                    diagnostico: null,  // placeholder: { top: 190, left: 100 }
+                    sala: null,         // placeholder: { top: 220, left: 100 }
+                    medico: { top: 825, left: 96 },
+                    rutmedico: null     // placeholder: { top: 930, left: 100 }
+                }
+            }
+        ];
+
         // --- 2. ESTADO DE LA APLICACIÓN ---
         let currentTool = 'text'; 
         let isDragging = false;
@@ -887,6 +931,95 @@ const savedElements = {
 
 // Variable para saber cuál era el documento anterior antes de cambiar
 let lastDoc = "orden_lab.jpg";
+
+        function getPageKeyForDoc(fileName, pageIndex = 0) {
+            if (fileName === 'orden_rm.jpg' && pageIndex > 0) return `orden_rm_bio_${pageIndex}`;
+            return fileName;
+        }
+
+        function getCurrentEditablePages() {
+            return Array.from(document.querySelectorAll('.document-page'));
+        }
+
+        function serializeCurrentElements() {
+            return Array.from(document.querySelectorAll('.added-element')).map(el => {
+                const page = el.closest('.document-page') || document.getElementById('document-wrapper');
+                return {
+                    pageKey: page.dataset.pageKey || lastDoc,
+                    html: el.innerHTML,
+                    classList: Array.from(el.classList),
+                    top: el.style.top,
+                    left: el.style.left,
+                    width: el.style.width,
+                    height: el.style.height,
+                    contentEditable: el.contentEditable
+                };
+            });
+        }
+
+        function bindEditableElementEvents(el) {
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (currentTool === 'erase') el.remove();
+            });
+        }
+
+        function renderRmBiosecurityPreviewPages() {
+            const area = document.getElementById('area-trabajo');
+            document.querySelectorAll('.biosecurity-page').forEach(page => page.remove());
+
+            rmBiosecurityPages.forEach((pageConfig, index) => {
+                const page = document.createElement('div');
+                page.className = 'document-page biosecurity-page';
+                page.dataset.pageKey = getPageKeyForDoc('orden_rm.jpg', index + 1);
+                page.style.width = pageConfig.width + 'px';
+                page.style.height = pageConfig.height + 'px';
+
+                const img = document.createElement('img');
+                img.className = 'document-page-img';
+                img.src = pageConfig.image;
+                img.alt = 'Encuesta de bioseguridad';
+                page.appendChild(img);
+
+                Object.entries(pageConfig.fields).forEach(([field, coords]) => {
+                    if (!coords) return;
+                    const autoField = document.createElement('div');
+                    autoField.className = 'auto-field bio-auto-field';
+                    autoField.dataset.autoField = field;
+                    autoField.style.top = coords.top + 'px';
+                    autoField.style.left = coords.left + 'px';
+                    page.appendChild(autoField);
+                });
+
+                area.appendChild(page);
+            });
+        }
+
+        function removeRmBiosecurityPreviewPages() {
+            document.querySelectorAll('.biosecurity-page').forEach(page => page.remove());
+        }
+
+        function restoreSavedElements(fileName) {
+            const pagesByKey = {};
+            getCurrentEditablePages().forEach(page => {
+                pagesByKey[page.dataset.pageKey] = page;
+            });
+
+            (savedElements[fileName] || []).forEach(data => {
+                const targetPage = pagesByKey[data.pageKey || fileName] || document.getElementById('document-wrapper');
+                const el = document.createElement('div');
+                data.classList.forEach(cls => el.classList.add(cls));
+                el.style.top = data.top;
+                el.style.left = data.left;
+                el.style.width = data.width;
+                el.style.height = data.height;
+                el.innerHTML = data.html;
+                el.contentEditable = data.contentEditable;
+                bindEditableElementEvents(el);
+                targetPage.appendChild(el);
+            });
+        }
 		
 
         function uint8ToBase64Url(bytes) {
@@ -1144,6 +1277,164 @@ let lastDoc = "orden_lab.jpg";
             }, 300);
         }
 
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getPrintablePatientData() {
+            const fechaRaw = document.getElementById('in-fecha').value;
+            let fecha = '';
+
+            if (fechaRaw) {
+                const partes = fechaRaw.split('-');
+                fecha = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+
+            return {
+                nombre: document.getElementById('in-nombre').value,
+                apellidos: document.getElementById('in-apellidos').value,
+                edad: document.getElementById('in-edad').value,
+                rutpaciente: document.getElementById('in-rutpaciente').value,
+                fecha,
+                diagnostico: document.getElementById('in-diagnostico').value,
+                sala: document.getElementById('in-sala').value,
+                medico: document.getElementById('in-medico').value,
+                rutmedico: document.getElementById('in-rutmedico').value
+            };
+        }
+
+        function buildBiosecurityPage(pageConfig, patientData) {
+            const fieldsHtml = Object.entries(pageConfig.fields)
+                .filter(([, coords]) => coords)
+                .map(([field, coords]) => `
+                    <div class="auto-field print-extra-field" style="top:${coords.top}px; left:${coords.left}px;">
+                        ${escapeHtml(patientData[field])}
+                    </div>
+                `)
+                .join('');
+
+            return `
+                <section class="print-page" style="width:${pageConfig.width}px; height:${pageConfig.height}px;">
+                    <img class="print-page-img" src="${pageConfig.image}" alt="Encuesta de bioseguridad">
+                    ${fieldsHtml}
+                </section>
+            `;
+        }
+
+        function printCurrentDocument() {
+            const selectedDoc = document.getElementById('doc-selector').value;
+
+            if (selectedDoc !== 'orden_rm.jpg') {
+                window.print();
+                return;
+            }
+
+            updateAutoFields();
+
+            const printWindow = window.open('', '_blank', 'width=900,height=1100');
+            if (!printWindow) {
+                alert('El navegador bloqueo la ventana de impresion.');
+                return;
+            }
+
+            const printablePagesHtml = getCurrentEditablePages().map(page => {
+                const pageClone = page.cloneNode(true);
+                const preview = pageClone.querySelector('#x-preview');
+                if (preview) preview.remove();
+
+                return `
+                    <section class="print-page" style="width:${page.offsetWidth}px; height:${page.offsetHeight}px;">
+                        ${pageClone.innerHTML}
+                    </section>
+                `;
+            }).join('');
+
+            printWindow.document.write(`
+                <html lang="es">
+                <head>
+                    <title>Orden RM con encuesta de bioseguridad</title>
+                    <style>
+                        @page { margin: 0; size: auto; }
+                        * { box-sizing: border-box; }
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            background: white;
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
+                        }
+                        .print-page,
+                        #document-wrapper {
+                            position: relative;
+                            width: 800px;
+                            height: 1000px;
+                            margin: 0;
+                            overflow: hidden;
+                            background: white;
+                            page-break-after: always;
+                            break-after: page;
+                        }
+                        .print-page:last-child {
+                            page-break-after: auto;
+                            break-after: auto;
+                        }
+                        #document-img,
+                        .print-page-img,
+                        .document-page-img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                            pointer-events: none;
+                            user-select: none;
+                        }
+                        .added-element,
+                        .auto-field {
+                            position: absolute;
+                            font-family: 'Courier New', Courier, monospace;
+                            font-weight: bold;
+                            color: #000;
+                            white-space: nowrap;
+                            font-size: 16px;
+                            line-height: 1;
+                            padding: 0;
+                            background: transparent !important;
+                            border: none !important;
+                            outline: none !important;
+                        }
+                        .tipo-cruz {
+                            color: blue;
+                            width: 16px;
+                            height: 16px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .tipo-texto {
+                            resize: none !important;
+                            overflow: hidden;
+                            white-space: pre-wrap;
+                        }
+                        .print-extra-field {
+                            min-width: 15px;
+                            min-height: 15px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printablePagesHtml}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 500);
+        }
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeQrModal();
         });
@@ -1193,46 +1484,23 @@ function changeDoc() {
     const newDoc = selector.value;
 
     // A. GUARDAR elementos del documento actual antes de salir
-    const currentElements = document.querySelectorAll('.added-element');
-    savedElements[lastDoc] = Array.from(currentElements).map(el => ({
-        html: el.innerHTML,
-        classList: Array.from(el.classList),
-        top: el.style.top,
-        left: el.style.left,
-        width: el.style.width,
-        height: el.style.height,
-        contentEditable: el.contentEditable
-    }));
+    savedElements[lastDoc] = serializeCurrentElements();
 
     // B. LIMPIAR el wrapper de los elementos visuales (pero no los auto-fields)
+    const currentElements = document.querySelectorAll('.added-element');
     currentElements.forEach(el => el.remove());
+    removeRmBiosecurityPreviewPages();
 
     // C. CAMBIAR IMAGEN Y POSICIONES
     document.getElementById('document-img').src = newDoc;
+    document.getElementById('document-wrapper').dataset.pageKey = getPageKeyForDoc(newDoc);
+    if (newDoc === 'orden_rm.jpg') renderRmBiosecurityPreviewPages();
     updateAutoFieldsPositions(newDoc);
 
     // D. RESTAURAR elementos del nuevo documento (si existen)
-    if (savedElements[newDoc]) {
-        savedElements[newDoc].forEach(data => {
-            const el = document.createElement('div');
-            data.classList.forEach(cls => el.classList.add(cls));
-            el.style.top = data.top;
-            el.style.left = data.left;
-            el.style.width = data.width;
-            el.style.height = data.height;
-            el.innerHTML = data.html;
-            el.contentEditable = data.contentEditable;
-
-            // Re-vincular eventos
-            el.addEventListener('mousedown', startDrag);
-            el.addEventListener('click', function(e) {
-                e.stopPropagation(); 
-                if (currentTool === 'erase') el.remove();
-            });
-
-            wrapper.appendChild(el);
-        });
-    }
+    restoreSavedElements(newDoc);
+    updateAutoFields();
+    setTool(currentTool);
 
     // Actualizar referencia
     lastDoc = newDoc;
@@ -1250,11 +1518,12 @@ function changeDoc() {
                 document.getElementById(btnId).classList.add('active');
             }
 
-            const wrapper = document.getElementById('document-wrapper');
-            if (tool === 'text') wrapper.style.cursor = 'text';
-            else if (tool === 'x') wrapper.style.cursor = 'crosshair';
-            else if (tool === 'move') wrapper.style.cursor = 'default';
-            else if (tool === 'erase') wrapper.style.cursor = 'not-allowed'; 
+            getCurrentEditablePages().forEach(page => {
+                if (tool === 'text') page.style.cursor = 'text';
+                else if (tool === 'x') page.style.cursor = 'crosshair';
+                else if (tool === 'move') page.style.cursor = 'default';
+                else if (tool === 'erase') page.style.cursor = 'not-allowed';
+            });
         }
 
         function toggleDebug() {
@@ -1268,25 +1537,32 @@ function changeDoc() {
         // --- 4. LÓGICA DEL CANVAS/DOCUMENTO ---
 
         const wrapper = document.getElementById('document-wrapper');
+        const documentArea = document.getElementById('area-trabajo');
 
-wrapper.addEventListener('click', function(e) {
+documentArea.addEventListener('click', function(e) {
             if (e.target.classList.contains('added-element')) return; 
             if (currentTool === 'move' || currentTool === 'erase') return;
 
-            const rect = wrapper.getBoundingClientRect();
+            const targetPage = e.target.closest('.document-page');
+            if (!targetPage) return;
+
+            const rect = targetPage.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
             if (currentTool === 'text') {
                 // Creamos la caja vacía directamente sin preguntar
-                createElement(x, y, '', 'text');
+                createElement(x, y, '', 'text', targetPage);
             } else if (currentTool === 'x') {
-                createElement(x - 6, y - 8, "X", 'x'); 
+                createElement(x - 6, y - 8, "X", 'x', targetPage); 
             }
         });
 
-wrapper.addEventListener('mousemove', function(e) {
-    const rect = wrapper.getBoundingClientRect();
+documentArea.addEventListener('mousemove', function(e) {
+    const targetPage = e.target.closest('.document-page');
+    if (!targetPage) return;
+
+    const rect = targetPage.getBoundingClientRect();
     // Coordenadas relativas al documento
     const x = Math.round(e.clientX - rect.left);
     const y = Math.round(e.clientY - rect.top);
@@ -1295,6 +1571,7 @@ wrapper.addEventListener('mousemove', function(e) {
     const preview = document.getElementById('x-preview');
     if (preview) {
         if (currentTool === 'x') {
+            if (preview.parentElement !== targetPage) targetPage.appendChild(preview);
             preview.style.display = 'block';
             // Usamos los mismos desfases que en createElement para precisión total
             preview.style.left = (x - 6) + 'px';
@@ -1316,12 +1593,12 @@ wrapper.addEventListener('mousemove', function(e) {
 });
 
 // Asegurar que el preview se oculte si el mouse sale del área de trabajo
-wrapper.addEventListener('mouseleave', () => {
+documentArea.addEventListener('mouseleave', () => {
     const preview = document.getElementById('x-preview');
     if (preview) preview.style.display = 'none';
 });
 
-function createElement(x, y, content, type) {
+function createElement(x, y, content, type, targetPage = wrapper) {
     const el = document.createElement('div');
     el.classList.add('added-element');
     el.style.left = x + 'px';
@@ -1361,15 +1638,9 @@ function createElement(x, y, content, type) {
         setTimeout(() => el.focus(), 10);
     }
 
-    el.addEventListener('mousedown', startDrag);
-    el.addEventListener('click', function(e) {
-        e.stopPropagation(); 
-        if (currentTool === 'erase') {
-            el.remove();
-        }
-    });
+    bindEditableElementEvents(el);
 
-    wrapper.appendChild(el);
+    targetPage.appendChild(el);
 }
 
         // --- 5. LÓGICA DE MOVER (DRAG AND DROP) ---
@@ -1390,7 +1661,8 @@ function createElement(x, y, content, type) {
             if (!isDragging || !dragElement) return;
             e.preventDefault();
 
-            const wrapperRect = wrapper.getBoundingClientRect();
+            const dragPage = dragElement.closest('.document-page') || wrapper;
+            const wrapperRect = dragPage.getBoundingClientRect();
             let newX = e.clientX - wrapperRect.left - offsetX;
             let newY = e.clientY - wrapperRect.top - offsetY;
 
@@ -1431,6 +1703,11 @@ if (fechaRaw) {
             document.getElementById('auto-sala').innerText = document.getElementById('in-sala').value;
             document.getElementById('auto-medico').innerText = document.getElementById('in-medico').value;
             document.getElementById('auto-rutmedico').innerText = document.getElementById('in-rutmedico').value;
+
+            const patientData = getPrintablePatientData();
+            document.querySelectorAll('.bio-auto-field').forEach(el => {
+                el.innerText = patientData[el.dataset.autoField] || '';
+            });
         }
 
         function updateAutoFieldsPositions(fileName) {
@@ -1500,3 +1777,4 @@ function borrarTodasLasCruces() {
     </script>
 </body>
 </html>
+
